@@ -48,7 +48,6 @@ typedef struct CAN_filter_t {
 } CAN_filter_t;
 
 // statistics about the CAN interface
-
 typedef struct CAN_stats_t {
     bool     enabled;           // enable collecting statistics
     uint32_t ringRxMax;         // number of entries in the ring buffer
@@ -63,7 +62,6 @@ typedef struct CAN_stats_t {
 } CAN_stats_t;
 
 // ring buffer data structure
-
 typedef struct ringbuffer_t {
     volatile uint16_t head;
     volatile uint16_t tail;
@@ -72,28 +70,8 @@ typedef struct ringbuffer_t {
 } ringbuffer_t;
 
 // for backwards compatibility with previous structure members
-
 #define	ext flags.extended
 #define	rtr flags.remote
-
-class CANListener
-{
-public:
-    CANListener ();
-
-    virtual bool frameHandler (CAN_message_t &frame, int mailbox, uint8_t controller);
-    virtual void txHandler (int mailbox, uint8_t controller);
-
-    void attachMBHandler (uint8_t mailBox);
-    void detachMBHandler (uint8_t mailBox);
-    void attachGeneralHandler (void);
-    void detachGeneralHandler (void);
-
-private:
-    uint32_t callbacksActive; // bitfield indicating which callbacks are installed (for object oriented callbacks only)
-
-    friend class FlexCAN;     // class has to have access to the the guts of this one
-};
 
 // -------------------------------------------------------------
 
@@ -114,6 +92,7 @@ private:
     
     bool IrqEnabled;
     uint32_t IrqMessage;
+    uint8_t errorState;
 
     void writeTxRegisters (const CAN_message_t &msg, uint8_t buffer);
     void readRxRegisters (CAN_message_t &msg, uint8_t buffer);
@@ -173,13 +152,13 @@ public:
     
     void begin (uint32_t baud = 250000, const CAN_filter_t &mask = defaultMask, uint8_t txAlt = 0, uint8_t rxAlt = 0);
 
-    void setFilter (const CAN_filter_t &filter, uint8_t n);
-    bool getFilter (CAN_filter_t &filter, uint8_t n);
-    void setMask (uint32_t mask, uint8_t n);
+    void setFilter (const CAN_filter_t &filter, uint8_t mbox);
+    bool getFilter (CAN_filter_t &filter, uint8_t mbox);
+    void setMask (const CAN_filter_t &filter, uint8_t mbox);
     void end (void);
     uint32_t available (void);
     int write (const CAN_message_t &msg);
-    int write (const CAN_message_t &msg, uint8_t n);
+    int write (const CAN_message_t &msg, uint8_t mbox);
     int read (CAN_message_t &msg);
     uint32_t rxBufferOverruns (void)
     {
@@ -216,6 +195,9 @@ public:
     uint8_t setNumTxBoxes (uint8_t txboxes);
     // Obsolete, for compatibility with version provided with Teensyduino
     uint8_t setNumTXBoxes (uint8_t txboxes) { return setNumTxBoxes(txboxes); }
+
+    void enableErrorHandling(void);
+    uint8_t getError(void);
 
     void message_isr (void);
     void bus_off_isr (void);
